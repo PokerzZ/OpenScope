@@ -94,7 +94,7 @@ pip install -r requirements.txt
 
 #### 4. 下载 Puppeteer 模型基座
 
-OpenScope 使用 70B 奖励模型作为 Puppeteer 的基础模型。你可以：
+OpenScope 策略网络模型保存在在/checkpoint/policy_net_20260105_091009.pt中，同时使用 70B 奖励模型作为 Puppeteer 的奖励模型，通过 api 调用 Qwen2.5-plus 模型作为智能体基座。你可以：
 
 **方法 1：直接从 Hugging Face 加载**
 ```yaml
