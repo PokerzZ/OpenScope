@@ -32,6 +32,24 @@
   <img src="ChatDev/assets/Code_Generated_Image.png" alt="OpenScope Architecture" width="800">
 </div>
 
+### 🖥️ 运行界面展示
+
+<div align="center">
+  <h3>1. 智能分析大屏</h3>
+  <img src="ChatDev/assets/analysis_ui.png" alt="Analysis Dashboard" width="800">
+  <p><i>实时展现社区分析结论、关键洞察及治理建议</i></p>
+  <br>
+
+  <h3>2. 智能体协作图谱</h3>
+  <img src="ChatDev/assets/agent_collaboration.png" alt="Agent Collaboration" width="800">
+  <p><i>动态生成的多智能体推理与执行路径</i></p>
+  <br>
+
+  <h3>3. 行动依赖关系</h3>
+  <img src="ChatDev/assets/action_dependencies.png" alt="Action Dependencies" width="800">
+  <p><i>各角色智能体之间的交互与依赖结构</i></p>
+</div>
+
 ---
 
 ## 🚀 快速开始
