@@ -1,0 +1,114 @@
+{
+    "answer": [
+        "When you find an answer, use as few words as possible, like a single number or a single word. And finish your answer with the following template: FINAL ANSWER: [YOUR FINAL ANSWER]. ",
+        "YOUR FINAL ANSWER should be a number OR as few words as possible OR a comma separated list of numbers and/or strings.",
+        "If you are asked for a number, don't use comma to write your number neither use units such as $ or percent sign unless specified otherwise. Do not include any units or punctuation.",
+        "If you are asked for a string, don't use articles, neither abbreviations (e.g. for cities), and write the digits in plain text unless specified otherwise.",
+        "If you are asked for a comma separated list, apply the above rules depending of whether the element to be put in the list is a number or a string.",
+        "Finish your answer with the following template: FINAL ANSWER: [YOUR FINAL ANSWER]"
+    ],
+    "MMLU_answer": [
+        "Choose the most common one and then format it.",
+        "Format it using the fewest words possible, it should be a single letter, but do not alter the original answer.",
+        "Do not include any other units or punctuation. ",
+        "And finish your answer with the following template: FINAL ANSWER: [YOUR FINAL ANSWER]",
+        "Return your answer with only the single letter."
+    ],
+    "gsm_answer": [
+        "Calculate carefully and provide only the final numerical answer.",
+        "The answer must be a pure number - either an integer or decimal number.",
+        "Do not include any units, symbols, or text in your answer.",
+        "Do not use commas in numbers.",
+        "Do not use scientific notation (e.g. 1e6).",
+        "Do not round the number unless specifically requested.",
+        "Use plain decimal format with decimal point if needed.",
+        "For large numbers write all digits without abbreviation.",
+        "Finish your answer with the following template: FINAL ANSWER: [YOUR FINAL ANSWER]"
+    ],
+    "OpenDigger_answer": [
+        "Provide a comprehensive and descriptive answer.",
+        "Do NOT output a single number or a simple option letter.",
+        "Explain your reasoning and the significance of the result.",
+        "If the result is a prediction, explain the trend and the data supporting it.",
+        "Finish your answer with the following template: FINAL ANSWER: [YOUR FINAL ANSWER]"
+    ],
+    "code_answer": [
+        "Provide the code in its most complete and executable form.",
+        "Ensure the code includes necessary libraries, imports, and setup.",
+        "Ensure the code is modular and follows good software design practices.",
+        "Avoid hardcoding values unless explicitly required.",
+        "Include proper error handling and edge case considerations.",
+        "If applicable, make sure the code is optimized for performance.",
+        "Do not add unnecessary comments unless required for clarification.",
+        "Finish your answer with the following template: FINAL ANSWER: [YOUR FINAL ANSWER]"
+    ],
+    "text_answer": [
+        "Provide a clear and concise answer.",
+        "Ensure your answer is well-structured and logically organized.",
+        "Include all relevant information and avoid unnecessary details.",
+        "Use proper grammar, spelling, and punctuation.",
+        "Finish your answer with the following template: FINAL ANSWER: [YOUR FINAL ANSWER]"
+    ],
+    "OpenDigger_aggregation": [
+        "You have several answer candidates from different reasoning paths. They are:\n{}",
+        "### Role",
+        "You are a Senior Community Data Analyst and Strategic Consultant. Your task is to aggregate the findings from multiple reasoning paths and provide a high-level executive summary based on raw data execution results.",
+        "",
+        "### Objectives",
+        "1. **Critical Review:** Evaluate all reasoning paths. If Python actions failed (e.g., NameErrors, SyntaxErrors), prioritize the raw data found in successful logs over the agents' guessed conclusions.",
+        "2. **Data Extraction:** Look into the `run_python` results. Extract specific metrics such as 'activity', 'openrank', 'response_time', and 'contributor' counts.",
+        "3. **Trend Analysis:** Calculate exact growth percentages and identify correlations between metrics (e.g., how response time affects activity).",
+        "4. **Actionable Recommendations:** Provide strategic advice based on the identified trends.",
+        "",
+        "### Constraints",
+        "- Your response MUST be a single, valid JSON object.",
+        "- Insights MUST include specific numbers and percentages (e.g., \"+23%\").",
+        "- Do not merely repeat the final option; explain the \"why\" behind the data.",
+        "",
+        "### Output Format",
+        "{{",
+        "  \"final_answer\": \"The most reliable option letter and description\",",
+        "  \"insights\": [",
+        "    \"Metric trend 1 (e.g., Activity increased by 23% over the last 3 months)\",",
+        "    \"Metric trend 2 (e.g., Issue response time dropped from 48h to 24h)\",",
+        "    \"Metric trend 3 (e.g., Stability of contributors/low churn risk)\"",
+        "  ],",
+        "  \"recommendations\": [",
+        "    \"Strategic suggestion 1\",",
+        "    \"Strategic suggestion 2\",",
+        "    \"Strategic suggestion 3\"",
+        "  ]",
+        "}}"
+    ],
+    "answer_aggregation": [
+        "You have several answer candidates. They are:\n{}",
+        "Critically evaluate these responses, considering potential biases or inaccuracies.",
+        "Choose the most reliable answer based on logical reasoning and factual accuracy.",
+        "If responses conflict, prioritize answers that provide clear reasoning or align with verifiable facts.",
+        "Format the chosen answer using the fewest words possible, but do not alter its core meaning.",
+        "YOUR FINAL ANSWER should be a number OR as few words as possible OR a comma separated list of numbers and/or strings.",
+        "If you are asked for a number, don't use comma to write your number neither use units such as $ or percent sign unless specified otherwise.",
+        "If you are asked for a string, don't use articles, neither abbreviations (e.g. for cities), and write the digits in plain text unless specified otherwise.",
+        "If you are asked for a comma separated list, apply the above rules depending of whether the element to be put in the list is a number or a string."
+    ],
+    "MMLU_aggregation": [
+        "You have several answer candidates. They are:\n{}",
+        "Choose the most common answer among the candidates.",
+        "If responses conflict, prioritize answers that provide clear reasoning or appear later",
+        "Format the answer as a single letter.",
+        "Do not include any other units or punctuation.",
+        "Return your answer with only the single letter."
+    ],
+    "gsm_aggregation": [
+        "You have several answer candidates. They are:\n{}",
+        "Choose the most reliable answer.",
+        "If responses conflict, prioritize answers that provide clear reasoning or appear later",
+        "The answer must be a pure number - either an integer or decimal number.",
+        "Do not include any units, symbols, or text in your answer.",
+        "Do not use commas in numbers.",
+        "Do not use scientific notation.",
+        "Do not round the number unless specifically requested.",
+        "Use plain decimal format with decimal point if needed.",
+        "For large numbers write all digits without abbreviation."
+    ]
+}

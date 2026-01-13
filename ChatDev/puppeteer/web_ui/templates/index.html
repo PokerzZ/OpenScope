@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenScope - Multi-Agent Collaboration Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .glass-morphism { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37); }
+        .terminal { background: #1e1e1e; color: #d4d4d4; font-family: 'Courier New', monospace; border-radius: 12px; padding: 20px; max-height: 500px; overflow-y: auto; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
+        .terminal::-webkit-scrollbar { width: 8px; }
+        .terminal::-webkit-scrollbar-track { background: #2d2d2d; }
+        .terminal::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+        .agent-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; margin-right: 8px; }
+        .graph-container { border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .graph-container iframe { width: 100%; height: 600px; border: none; }
+        .pulse-dot { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .gradient-text { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-5px); box-shadow: 0 12px 40px rgba(31, 38, 135, 0.5); }
+        .tab-button { cursor: pointer; }
+        .progress-bar-transition { transition: width 0.5s ease-out; }
+        .step-item { transition: all 0.3s ease; opacity: 0; transform: translateY(10px); }
+        .step-item.show { opacity: 1; transform: translateY(0); }
+    </style>
+</head>
+<body class="min-h-screen py-8 px-4">
+    <div class="container mx-auto max-w-7xl">
+        <div class="text-center mb-8">
+            <h1 class="text-5xl font-bold text-white mb-3"><i class="fas fa-brain mr-3"></i>OpenScope</h1>
+            <p class="text-white text-lg opacity-90">Multi-Agent Collaboration for Open Source Analytics</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column: Controls & Logs -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Control Panel -->
+                <div class="glass-morphism p-6 card-hover">
+                    <h2 class="text-2xl font-bold gradient-text mb-6"><i class="fas fa-rocket mr-2"></i>Analysis Control</h2>
+                    <form id="analysisForm" class="space-y-5">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-code-branch mr-2"></i>Repository</label>
+                            <input type="text" id="repoInput" name="repo" value="X-lab2017/open-digger" placeholder="owner/repo-name"
+                                   class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-purple-500 focus:outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-calendar-alt mr-2"></i>Target Month</label>
+                            <input type="text" id="dateInput" name="date" value="2023-01" placeholder="YYYY-MM"
+                                   class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-purple-500 focus:outline-none transition">
+                        </div>
+                        <button type="submit" id="startBtn"
+                                class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                            <i class="fas fa-play mr-2"></i><span>Start Analysis</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Logs Panel (Moved here) -->
+                <div id="logPanel" class="glass-morphism p-6 card-hover hidden">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-terminal mr-2"></i>Live Logs</h2>
+                    <div id="logContainer" class="terminal" style="max-height: 400px; font-size: 0.8em;"></div>
+                </div>
+            </div>
+
+            <!-- Right Column: Progress/Result & Graphs -->
+            <div class="lg:col-span-2 space-y-6">
+                
+                <!-- Progress Panel (Deep Research Style) -->
+                <div id="progressPanel" class="glass-morphism p-8 card-hover hidden">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-2xl font-bold gradient-text"><i class="fas fa-search-location mr-2"></i>Deep Analysis in Progress</h2>
+                        <span id="progressPercent" class="text-purple-600 font-bold">0%</span>
+                    </div>
+                    
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-gray-200 rounded-full h-3 mb-6 overflow-hidden">
+                        <div id="progressBar" class="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 h-3 rounded-full progress-bar-transition" style="width: 0%"></div>
+                    </div>
+                    
+                    <!-- Dynamic Step Indicator -->
+                    <div class="flex items-center space-x-3 mb-6 bg-purple-50 p-4 rounded-xl border border-purple-100">
+                        <div class="pulse-dot h-3 w-3 bg-purple-600 rounded-full"></div>
+                        <div id="currentStepText" class="font-medium text-purple-800">Initializing agents...</div>
+                    </div>
+
+                    <!-- Steps History -->
+                    <div id="stepsContainer" class="space-y-3 pl-2 border-l-2 border-gray-200">
+                        <!-- Steps will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Result Panel -->
+                <div id="resultPanel" class="glass-morphism p-6 card-hover hidden">
+                    <h3 class="text-xl font-bold text-purple-700 mb-4"><i class="fas fa-check-circle mr-2"></i>Analysis Conclusion</h3>
+                    <div class="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-6">
+                        <div class="text-sm text-gray-500 mb-2 font-semibold uppercase tracking-wide">Final Output</div>
+                        <div id="finalAnswer" class="text-lg font-medium gradient-text leading-relaxed px-2 py-1 max-w-full break-words whitespace-pre-wrap"></div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                        <div id="insightsSection" class="hidden bg-white rounded-lg p-5 shadow-sm border border-gray-100">
+                            <h4 class="font-semibold text-gray-800 mb-3 flex items-center"><i class="fas fa-lightbulb mr-2 text-yellow-500"></i>Key Insights</h4>
+                            <ul id="insightList" class="space-y-3 text-sm text-gray-600"></ul>
+                        </div>
+                        <div id="recommendationsSection" class="hidden bg-white rounded-lg p-5 shadow-sm border border-gray-100">
+                            <h4 class="font-semibold text-gray-800 mb-3 flex items-center"><i class="fas fa-tasks mr-2 text-green-500"></i>Recommendations</h4>
+                            <ul id="recommendationList" class="space-y-3 text-sm text-gray-600"></ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Graphs Panel -->
+                <div id="graphsPanel" class="glass-morphism p-6 card-hover hidden">
+                    <div class="mb-4">
+                        <div class="flex border-b border-gray-200">
+                            <button id="agentGraphTab" class="tab-button px-6 py-3 font-semibold text-purple-600 border-b-2 border-purple-600 transition">
+                                <i class="fas fa-sitemap mr-2"></i>Agent Collaboration
+                            </button>
+                            <button id="actionGraphTab" class="tab-button px-6 py-3 font-semibold text-gray-500 hover:text-purple-600 transition">
+                                <i class="fas fa-project-diagram mr-2"></i>Action Dependencies
+                            </button>
+                        </div>
+                    </div>
+                    <div id="agentGraphContainer" class="graph-container"></div>
+                    <div id="actionGraphContainer" class="graph-container hidden"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-12 text-white/60 text-sm">
+            <p>OpenScope &copy; 2026</p>
+        </div>
+    </div>
+
+    <script>
+        const logContainer = document.getElementById('logContainer');
+        const logPanel = document.getElementById('logPanel');
+        const resultPanel = document.getElementById('resultPanel');
+        const progressPanel = document.getElementById('progressPanel');
+        const progressBar = document.getElementById('progressBar');
+        const progressPercent = document.getElementById('progressPercent');
+        const currentStepText = document.getElementById('currentStepText');
+        const stepsContainer = document.getElementById('stepsContainer');
+        
+        const graphsPanel = document.getElementById('graphsPanel');
+        const startBtn = document.getElementById('startBtn');
+        const agentGraphTab = document.getElementById('agentGraphTab');
+        const actionGraphTab = document.getElementById('actionGraphTab');
+        const agentGraphContainer = document.getElementById('agentGraphContainer');
+        const actionGraphContainer = document.getElementById('actionGraphContainer');
+
+        agentGraphTab.addEventListener('click', () => {
+            agentGraphTab.classList.add('text-purple-600', 'border-purple-600');
+            agentGraphTab.classList.remove('text-gray-500');
+            actionGraphTab.classList.add('text-gray-500');
+            actionGraphTab.classList.remove('text-purple-600', 'border-purple-600');
+            agentGraphContainer.classList.remove('hidden');
+            actionGraphContainer.classList.add('hidden');
+        });
+
+        actionGraphTab.addEventListener('click', () => {
+            actionGraphTab.classList.add('text-purple-600', 'border-purple-600');
+            actionGraphTab.classList.remove('text-gray-500');
+            agentGraphTab.classList.add('text-gray-500');
+            agentGraphTab.classList.remove('text-purple-600', 'border-purple-600');
+            actionGraphContainer.classList.remove('hidden');
+            agentGraphContainer.classList.add('hidden');
+        });
+
+        let currentProgress = 0;
+
+        function updateProgress(percent, text) {
+            if (percent <= currentProgress) return; // Prevent regression
+            
+            currentProgress = percent;
+            progressBar.style.width = percent + '%';
+            progressPercent.textContent = percent + '%';
+            if (text) {
+                currentStepText.textContent = text;
+                addStep(text);
+            }
+        }
+
+        function addStep(text) {
+            // Avoid adding same step repeatedly
+            const lastStep = stepsContainer.lastElementChild;
+            if (lastStep && lastStep.textContent.includes(text)) return;
+
+            const div = document.createElement('div');
+            div.className = 'step-item show flex items-center text-gray-500 text-sm';
+            div.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>' + text;
+            stepsContainer.appendChild(div);
+            // Keep only last 5 steps to avoid clutter
+            if (stepsContainer.children.length > 5) {
+                stepsContainer.removeChild(stepsContainer.firstElementChild);
+            }
+        }
+
+        const eventSource = new EventSource('/stream');
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            if (data.type === 'log') {
+                const p = document.createElement('div');
+                p.className = 'mb-1';
+                let message = data.message;
+                
+                // Parse for progress (Monotonic check handled in updateProgress)
+                if (message.includes("Arbitrator")) updateProgress(90, "Arbitrator Synthesizing Results...");
+                else if (message.includes("Predictor")) updateProgress(70, "Predictor Analyzing Trends...");
+                else if (message.includes("FeatureEngineer")) updateProgress(45, "Feature Engineer Processing Data...");
+                else if (message.includes("Manager")) updateProgress(20, "Manager Agent Reasoning...");
+                else if (message.includes("OpenDigger")) updateProgress(10, "Fetching OpenDigger Data...");
+                
+                if (message.includes("FeatureEngineer")) {
+                    p.innerHTML = '<span class="agent-badge" style="background-color: #FFD700; color: #000;">FeatureEngineer</span>' + message.replace('FeatureEngineer', '');
+                } else if (message.includes("Predictor")) {
+                    p.innerHTML = '<span class="agent-badge" style="background-color: #00BFFF; color: #fff;">Predictor</span>' + message.replace('Predictor', '');
+                } else if (message.includes("Arbitrator")) {
+                    p.innerHTML = '<span class="agent-badge" style="background-color: #FF69B4; color: #fff;">Arbitrator</span>' + message.replace('Arbitrator', '');
+                } else {
+                    p.textContent = message;
+                }
+                logContainer.appendChild(p);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            } else if (data.type === 'result') {
+                updateProgress(100, "Analysis Complete!");
+                setTimeout(() => {
+                    displayResult(data.payload);
+                    progressPanel.classList.add('hidden');
+                    startBtn.disabled = false;
+                    startBtn.querySelector('span').textContent = 'Start Analysis';
+                }, 1000); // Small delay to show 100%
+            } else if (data.type === 'error') {
+                const p = document.createElement('div');
+                p.innerHTML = '<span class="text-red-500 font-bold">ERROR:</span> ' + data.message;
+                logContainer.appendChild(p);
+                startBtn.disabled = false;
+                startBtn.querySelector('span').textContent = 'Start Analysis';
+                
+                // Show error in progress bar Text
+                currentStepText.innerHTML = '<span class="text-red-500"><i class="fas fa-exclamation-triangle mr-2"></i>Error: ' + data.message + '</span>';
+                
+                // Change progress bar color to red
+                progressBar.classList.remove('from-blue-500', 'via-purple-500', 'to-pink-500');
+                progressBar.classList.add('bg-red-500');
+            }
+        };
+
+        document.getElementById('analysisForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const repo = document.getElementById('repoInput').value;
+            
+            // Reset Progress Bar Color
+            progressBar.classList.remove('bg-red-500');
+            progressBar.classList.add('from-blue-500', 'via-purple-500', 'to-pink-500');
+            const date = document.getElementById('dateInput').value;
+            
+            // Reset UI
+            logContainer.innerHTML = '';
+            stepsContainer.innerHTML = '';
+            resultPanel.classList.add('hidden');
+            graphsPanel.classList.add('hidden');
+            
+            logPanel.classList.remove('hidden'); // Show logs in left col
+            progressPanel.classList.remove('hidden'); // Show progress in right col
+            
+            startBtn.disabled = true;
+            startBtn.querySelector('span').textContent = 'Running...';
+            
+            // Reset Progress
+            currentProgress = 0;
+            updateProgress(5, "Initializing Environment...");
+            
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ repo, date })
+                });
+                if (!response.ok) throw new Error("Failed to start analysis");
+            } catch (error) {
+                alert(error.message);
+                startBtn.disabled = false;
+                startBtn.querySelector('span').textContent = 'Start Analysis';
+            }
+        });
+
+        function displayResult(result) {
+            resultPanel.classList.remove('hidden');
+            let finalAnswer = '';
+            let agentGraphPath = null;
+            let actionGraphPath = null;
+            
+            // Reset Insight Sections
+            document.getElementById('insightsSection').classList.add('hidden');
+            document.getElementById('recommendationsSection').classList.add('hidden');
+            
+            if (typeof result === 'object' && result !== null) {
+                // Determine base final answer string
+                let rawAnswer = result.final_answer;
+                
+                // Handle case where final_answer itself is an object (sometimes happens if parsed upstream)
+                if (typeof rawAnswer === 'object' && rawAnswer !== null) {
+                    finalAnswer = rawAnswer.final_answer || rawAnswer.answer || JSON.stringify(rawAnswer);
+                    
+                    // Also try to extract insights from this object directly
+                    if (rawAnswer.insights) {
+                         const insights = rawAnswer.insights;
+                         if (Array.isArray(insights)) {
+                            document.getElementById('insightsSection').classList.remove('hidden');
+                            document.getElementById('insightList').innerHTML = insights.map(item => 
+                                '<li class="flex items-start"><i class="fas fa-check-circle text-purple-500 mr-2 mt-1"></i><span>' + item + '</span></li>'
+                            ).join('');
+                         }
+                    }
+                    if (rawAnswer.recommendations) {
+                         const recs = rawAnswer.recommendations;
+                         if (Array.isArray(recs)) {
+                            document.getElementById('recommendationsSection').classList.remove('hidden');
+                            document.getElementById('recommendationList').innerHTML = recs.map(item => 
+                                '<li class="flex items-start"><i class="fas fa-arrow-right text-indigo-500 mr-2 mt-1"></i><span>' + item + '</span></li>'
+                            ).join('');
+                         }
+                    }
+
+                } else {
+                    finalAnswer = rawAnswer || result.toString();
+                }
+
+                agentGraphPath = result.agent_graph;
+                actionGraphPath = result.action_graph;
+                
+                // If it's a string, try to parse JSON inside it (MMLU output often wrapped in markdown)
+                if (typeof rawAnswer === 'string') {
+                    // Try to extract JSON from the string if it contains markdown or extra text
+                    // Try to extract JSON from the string if it contains markdown or extra text
+                    // Sometimes LLM returns ```json ... ```
+                    let jsonStr = result.final_answer;
+                    const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        try {
+                            const parsed = JSON.parse(jsonMatch[0]);
+                            finalAnswer = parsed.final_answer || parsed.answer || result.final_answer;
+                            
+                            // Check for insights/recommendations
+                            if (parsed.insights && Array.isArray(parsed.insights)) {
+                                document.getElementById('insightsSection').classList.remove('hidden');
+                                document.getElementById('insightList').innerHTML = parsed.insights.map(item => 
+                                    '<li class="flex items-start"><i class="fas fa-check-circle text-purple-500 mr-2 mt-1"></i><span>' + item + '</span></li>'
+                                ).join('');
+                            }
+                            if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
+                                document.getElementById('recommendationsSection').classList.remove('hidden');
+                                document.getElementById('recommendationList').innerHTML = parsed.recommendations.map(item => 
+                                    '<li class="flex items-start"><i class="fas fa-arrow-right text-indigo-500 mr-2 mt-1"></i><span>' + item + '</span></li>'
+                                ).join('');
+                            }
+                        } catch (e) {
+                            // If parse fails, use raw string
+                        }
+                    }
+                }
+            } else {
+                finalAnswer = result?.toString() || 'No result';
+            }
+            
+            document.getElementById('finalAnswer').textContent = finalAnswer;
+            
+            if (agentGraphPath || actionGraphPath) {
+                graphsPanel.classList.remove('hidden');
+                // Force iframe reload by adding timestamp
+                const ts = new Date().getTime();
+                if (agentGraphPath) {
+                    agentGraphContainer.innerHTML = '<iframe src="/graphs/' + encodeURIComponent(agentGraphPath) + '?t=' + ts + '"></iframe>';
+                }
+                if (actionGraphPath) {
+                    actionGraphContainer.innerHTML = '<iframe src="/graphs/' + encodeURIComponent(actionGraphPath) + '?t=' + ts + '"></iframe>';
+                }
+            }
+        }
+    </script>
+</body>
+</html>
