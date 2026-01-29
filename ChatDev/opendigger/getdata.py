@@ -24,6 +24,8 @@ DEFAULT_METRICS = [
     "inactive_contributors",
 ]
 SAFE_REPO_SEPARATOR = "_"
+MONTH_KEY_PATTERN = re.compile(r"^\d{4}-\d{2}$")
+JSON_SUFFIX = ".json"
 
 # 计算二进制文件的绝对路径
 BIN_PATH = os.path.join(BASE_DIR, SUB_DIR_NAME, BINARY_NAME)
@@ -59,7 +61,7 @@ class OpenPuppeteerDataCore:
     def fetch_and_clean(self, repo: str, metric: str) -> Optional[pd.DataFrame]:
         """Download and normalize a single OpenDigger metric."""
         safe_repo = repo.replace("/", SAFE_REPO_SEPARATOR)
-        file_path = os.path.join(self.storage_dir, f"{safe_repo}_{metric}.json")
+        file_path = self._build_metric_path(safe_repo, metric)
         
         # 因为我们已经把子文件夹加入了 PATH，所以这里直接写名字即可
         cmd = [self.binary_name, "download", repo, metric, "-o", file_path]
@@ -82,7 +84,7 @@ class OpenPuppeteerDataCore:
             with open(file_path, 'r') as f:
                 raw = json.load(f)
             
-            monthly = {k: v for k, v in raw.items() if re.match(r'^\d{4}-\d{2}$', k)}
+            monthly = {k: v for k, v in raw.items() if MONTH_KEY_PATTERN.match(k)}
             df = pd.DataFrame(list(monthly.items()), columns=['month', metric])
             df['month'] = pd.to_datetime(df['month'])
             return df
@@ -145,6 +147,10 @@ class OpenPuppeteerDataCore:
              )
 
         return final_df
+
+    def _build_metric_path(self, safe_repo: str, metric: str) -> str:
+        """Build the output path for a single metric payload."""
+        return os.path.join(self.storage_dir, f"{safe_repo}_{metric}{JSON_SUFFIX}")
 
 if __name__ == "__main__":
     core = OpenPuppeteerDataCore()

@@ -14,6 +14,19 @@ COLUMNS_TO_SHOW = [
     "change_request_response_time",
     "inactive_contributors",
 ]
+OUTPUT_FILENAME = "sft_train_data.jsonl"
+CONTEXT_SUFFIX = "_context.csv"
+SYSTEM_PROMPT = (
+    "You are an Open Source Community Manager. Analyze the provided community "
+    "metrics and generate a structured JSON report."
+)
+USER_PROMPT_TEMPLATE = """Repository: {repo_name}
+Analysis Period: {start_month} to {end_month}
+
+Data:
+{context_str}
+
+Please provide a detailed analysis in JSON format containing predictions for the next month ({target_month}), key insights, and actionable recommendations."""
 
 def generate_insights(
     window: pd.DataFrame, trend: str, activity_growth: float
@@ -62,13 +75,21 @@ def generate_recommendations(
         
     return recs
 
+def format_analysis_period(start: pd.Timestamp, end: pd.Timestamp) -> str:
+    """Format a month range for analysis metadata."""
+    return f"{start.strftime('%Y-%m')} to {end.strftime('%Y-%m')}"
+
+def format_month(start: pd.Timestamp) -> str:
+    """Format a single month as YYYY-MM."""
+    return start.strftime("%Y-%m")
+
 def generate_sft_dataset() -> None:
     """Generate SFT samples and write them to jsonl."""
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     data_dir = os.path.join(base_dir, "puppeteer", "data", "OpenDigger", "train")
     output_dir = os.path.join(base_dir, "puppeteer", "data")
     os.makedirs(output_dir, exist_ok=True)
-    output_path = os.path.join(output_dir, "sft_train_data.jsonl")
+    output_path = os.path.join(output_dir, OUTPUT_FILENAME)
     
     dataset = []
     window_size = WINDOW_SIZE
@@ -78,7 +99,7 @@ def generate_sft_dataset() -> None:
         return
 
     print(f"Scanning {data_dir}...")
-    files = [f for f in os.listdir(data_dir) if f.endswith("_context.csv")]
+    files = [f for f in os.listdir(data_dir) if f.endswith(CONTEXT_SUFFIX)]
     
     for filename in files:
         repo_name = filename.replace("_context.csv", "").replace("_", "/")
@@ -104,14 +125,19 @@ def generate_sft_dataset() -> None:
                 # context_str = window[COLUMNS_TO_SHOW].to_markdown(index=False)
                 context_str = window[COLUMNS_TO_SHOW].to_string(index=False)
                 
-                system_prompt = "You are an Open Source Community Manager. Analyze the provided community metrics and generate a structured JSON report."
-                user_prompt = f"""Repository: {repo_name}
-Analysis Period: {window.iloc[0]['month'].strftime('%Y-%m')} to {window.iloc[-1]['month'].strftime('%Y-%m')}
-
-Data:
-{context_str}
-
-Please provide a detailed analysis in JSON format containing predictions for the next month ({target['month'].strftime('%Y-%m')}), key insights, and actionable recommendations."""
+                system_prompt = SYSTEM_PROMPT
+                start_month = format_month(window.iloc[0]["month"])
+                end_month = format_month(window.iloc[-1]["month"])
+                analysis_period = format_analysis_period(
+                    window.iloc[0]["month"], window.iloc[-1]["month"]
+                )
+                user_prompt = USER_PROMPT_TEMPLATE.format(
+                    repo_name=repo_name,
+                    start_month=start_month,
+                    end_month=end_month,
+                    context_str=context_str,
+                    target_month=target["month"].strftime("%Y-%m"),
+                )
 
                 # 构建真实值（输出）
                 # 1. 计算趋势
@@ -126,7 +152,7 @@ Please provide a detailed analysis in JSON format containing predictions for the
                 # 2. Generate JSON Content
                 output_obj = {
                     "repository": repo_name,
-                    "analysis_period": f"{window.iloc[0]['month'].strftime('%Y-%m')} to {window.iloc[-1]['month'].strftime('%Y-%m')}",
+                    "analysis_period": analysis_period,
                     "predictions": {
                         "next_month_openrank": round(float(target['openrank']), 2),
                         "next_month_activity": round(float(target['activity']), 2),

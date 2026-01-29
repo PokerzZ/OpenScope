@@ -9,10 +9,15 @@ from tqdm import tqdm
 
 # 定义数据集保存路径
 # 路径: ChatDev/puppeteer/data/OpenDigger
-DATASET_ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "puppeteer", "data", "OpenDigger")
+DATASET_SUBDIR = os.path.join("puppeteer", "data", "OpenDigger")
+DATASET_ROOT = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), DATASET_SUBDIR
+)
 TRAIN_DIR = os.path.join(DATASET_ROOT, "train")
 TEST_DIR = os.path.join(DATASET_ROOT, "test")
 CONTEXT_SUFFIX = "_context.csv"
+START_MESSAGE = "🚀 开始批量构建数据集..."
+END_MESSAGE = "\n✨ 批量处理完成！"
 
 # 确保目录存在
 os.makedirs(TRAIN_DIR, exist_ok=True)
@@ -50,7 +55,7 @@ def safe_repo_name(repo: str) -> str:
 
 def batch_process() -> None:
     """Fetch OpenDigger metrics for train/test repo lists."""
-    print(f"🚀 开始批量构建数据集...")
+    print(START_MESSAGE)
     print(f"📂 数据将保存至: {DATASET_ROOT}")
     
     try:
@@ -82,7 +87,7 @@ def batch_process() -> None:
 
         print(f"✅ Saved {saved_count} datasets for {split}")
 
-    print("\n✨ 批量处理完成！")
+    print(END_MESSAGE)
     print(f"训练集路径: {TRAIN_DIR}")
     print(f"测试集路径: {TEST_DIR}")
 
