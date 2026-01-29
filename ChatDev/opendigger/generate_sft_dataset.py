@@ -3,6 +3,7 @@
 import os
 import pandas as pd
 import json
+from typing import List
 
 WINDOW_SIZE = 6
 COLUMNS_TO_SHOW = [
@@ -14,7 +15,10 @@ COLUMNS_TO_SHOW = [
     "inactive_contributors",
 ]
 
-def generate_insights(window, trend, activity_growth):
+def generate_insights(
+    window: pd.DataFrame, trend: str, activity_growth: float
+) -> List[str]:
+    """Generate insight sentences based on recent metrics."""
     insights = []
     
     # 1. 活跃度洞察
@@ -38,7 +42,10 @@ def generate_insights(window, trend, activity_growth):
     
     return insights
 
-def generate_recommendations(trend, activity_growth, inactive_count):
+def generate_recommendations(
+    trend: str, activity_growth: float, inactive_count: float
+) -> List[str]:
+    """Generate recommendation sentences based on trend signals."""
     recs = []
     
     if trend == "decreasing" or activity_growth < 0:
@@ -55,7 +62,8 @@ def generate_recommendations(trend, activity_growth, inactive_count):
         
     return recs
 
-def generate_sft_dataset():
+def generate_sft_dataset() -> None:
+    """Generate SFT samples and write them to jsonl."""
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     data_dir = os.path.join(base_dir, "puppeteer", "data", "OpenDigger", "train")
     output_dir = os.path.join(base_dir, "puppeteer", "data")

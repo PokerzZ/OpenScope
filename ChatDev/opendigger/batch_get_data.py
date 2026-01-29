@@ -1,6 +1,8 @@
 """Batch OpenDigger dataset generation utilities."""
 
 import os
+from typing import Dict, List
+
 import pandas as pd
 from getdata import OpenPuppeteerDataCore
 from tqdm import tqdm
@@ -10,6 +12,7 @@ from tqdm import tqdm
 DATASET_ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "puppeteer", "data", "OpenDigger")
 TRAIN_DIR = os.path.join(DATASET_ROOT, "train")
 TEST_DIR = os.path.join(DATASET_ROOT, "test")
+CONTEXT_SUFFIX = "_context.csv"
 
 # 确保目录存在
 os.makedirs(TRAIN_DIR, exist_ok=True)
@@ -17,7 +20,7 @@ os.makedirs(TEST_DIR, exist_ok=True)
 
 # 仓库列表 (Repo List)
 # 包含不同类型的项目以保证数据多样性：成熟期、成长期、稳定期等
-REPOS = {
+REPOS: Dict[str, List[str]] = {
     "train": [
         "X-lab2017/open-digger",
         "pytorch/pytorch",
@@ -42,9 +45,11 @@ REPOS = {
 }
 
 def safe_repo_name(repo: str) -> str:
+    """Convert a repo slug into a filesystem-safe name."""
     return repo.replace("/", "_")
 
 def batch_process() -> None:
+    """Fetch OpenDigger metrics for train/test repo lists."""
     print(f"🚀 开始批量构建数据集...")
     print(f"📂 数据将保存至: {DATASET_ROOT}")
     
@@ -67,7 +72,7 @@ def batch_process() -> None:
                 if df is not None and not df.empty:
                     # 保存为 CSV
                     safe_name = safe_repo_name(repo)
-                    file_path = os.path.join(save_dir, f"{safe_name}_context.csv")
+                    file_path = os.path.join(save_dir, f"{safe_name}{CONTEXT_SUFFIX}")
                     df.to_csv(file_path, index=False)
                     saved_count += 1
                 else:

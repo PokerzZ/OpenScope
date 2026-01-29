@@ -23,6 +23,7 @@ DEFAULT_METRICS = [
     "change_request_response_time",
     "inactive_contributors",
 ]
+SAFE_REPO_SEPARATOR = "_"
 
 # 计算二进制文件的绝对路径
 BIN_PATH = os.path.join(BASE_DIR, SUB_DIR_NAME, BINARY_NAME)
@@ -33,7 +34,8 @@ BIN_DIR_PATH = os.path.join(BASE_DIR, SUB_DIR_NAME)
 os.environ["PATH"] = BIN_DIR_PATH + os.pathsep + os.environ["PATH"]
 
 class OpenPuppeteerDataCore:
-    def __init__(self, binary_name=BINARY_NAME):
+    """Core utilities for downloading and assembling OpenDigger metrics."""
+    def __init__(self, binary_name: str = BINARY_NAME):
         self.binary_name = binary_name
         self.storage_dir = os.path.join(BASE_DIR, "data_warehouse")
         
@@ -55,7 +57,8 @@ class OpenPuppeteerDataCore:
             os.chmod(BIN_PATH, st.st_mode | stat.S_IEXEC)
 
     def fetch_and_clean(self, repo: str, metric: str) -> Optional[pd.DataFrame]:
-        safe_repo = repo.replace('/', '_')
+        """Download and normalize a single OpenDigger metric."""
+        safe_repo = repo.replace("/", SAFE_REPO_SEPARATOR)
         file_path = os.path.join(self.storage_dir, f"{safe_repo}_{metric}.json")
         
         # 因为我们已经把子文件夹加入了 PATH，所以这里直接写名字即可
@@ -95,6 +98,7 @@ class OpenPuppeteerDataCore:
     def build_aligned_dataset(
         self, repo: str, metrics: Optional[Sequence[str]] = None
     ) -> Optional[pd.DataFrame]:
+        """Merge OpenDigger metrics into a single aligned dataset."""
         if metrics is None:
             # 默认指标集，包含核心活跃度、响应速度和贡献者流失情况
             metrics = DEFAULT_METRICS

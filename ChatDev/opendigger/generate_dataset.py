@@ -1,8 +1,8 @@
 """Generate OpenDigger MMLU-style QA datasets."""
 
 import os
-import sys
 import pandas as pd
+from typing import Any, Dict, List
 
 COLUMNS_TO_SHOW = [
     "month",
@@ -12,8 +12,12 @@ COLUMNS_TO_SHOW = [
     "change_request_response_time",
     "inactive_contributors",
 ]
+OUTPUT_FILENAME = "test.parquet"
 
-def generate_qa_pairs(df, repo_name, window_size=6):
+def generate_qa_pairs(
+    df: pd.DataFrame, repo_name: str, window_size: int = 6
+) -> List[Dict[str, Any]]:
+    """Build QA pairs from a rolling window over a repo's metrics."""
     qa_pairs = []
     
     # 确保月份是 datetime 类型
@@ -74,7 +78,8 @@ def generate_qa_pairs(df, repo_name, window_size=6):
         
     return qa_pairs
 
-def main():
+def main() -> None:
+    """Entry point for generating QA data from CSV contexts."""
     # 现有 CSV 文件的路径
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     data_dir = os.path.join(base_dir, "puppeteer", "data", "OpenDigger", "train")
@@ -107,7 +112,7 @@ def main():
     output_dir = os.path.join(base_dir, "puppeteer", "data", "OpenDiggerMMLU")
     os.makedirs(output_dir, exist_ok=True)
         
-    output_path = os.path.join(output_dir, "test.parquet")
+    output_path = os.path.join(output_dir, OUTPUT_FILENAME)
     df_final.to_parquet(output_path)
     print(f"Dataset saved to {output_path} with {len(df_final)} samples.")
 
