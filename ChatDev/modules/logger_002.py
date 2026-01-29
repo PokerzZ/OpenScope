@@ -1,5 +1,2 @@
-"""feat(logger): Add logger module"""
-
-class Logger:
-    pass
-
+"""日志系统"""
+class Logger: pass
