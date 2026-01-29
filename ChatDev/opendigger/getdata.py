@@ -12,6 +12,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # 指定子文件夹路径和二进制文件名
 SUB_DIR_NAME = "opendigger-cli"
 BINARY_NAME = "od-cli"
+DEFAULT_TIMEOUT_SECONDS = 60
 
 # 计算二进制文件的绝对路径
 BIN_PATH = os.path.join(BASE_DIR, SUB_DIR_NAME, BINARY_NAME)
@@ -52,7 +53,13 @@ class OpenPuppeteerDataCore:
         logging.info(f"Downloading OpenDigger metric '{metric}' for {repo}...")
         try:
             # check=True 会在命令失败时抛出异常
-            subprocess.run(cmd, capture_output=True, text=True, check=True)
+            subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=DEFAULT_TIMEOUT_SECONDS,
+            )
             with open(file_path, 'r') as f:
                 raw = json.load(f)
             
@@ -62,6 +69,11 @@ class OpenPuppeteerDataCore:
             return df
         except subprocess.CalledProcessError as e:
             logging.error(f"❌ {repo} {metric} 抓取失败！命令行输出: {e.stderr}")
+            return None
+        except subprocess.TimeoutExpired:
+            logging.error(
+                f"❌ {repo} {metric} 抓取超时（{DEFAULT_TIMEOUT_SECONDS}s）。"
+            )
             return None
 
     def build_aligned_dataset(self, repo, metrics=None):
