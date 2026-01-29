@@ -1,3 +1,5 @@
+"""Batch OpenDigger dataset generation utilities."""
+
 import os
 import pandas as pd
 from getdata import OpenPuppeteerDataCore
@@ -39,7 +41,10 @@ REPOS = {
     ]
 }
 
-def batch_process():
+def safe_repo_name(repo: str) -> str:
+    return repo.replace("/", "_")
+
+def batch_process() -> None:
     print(f"🚀 开始批量构建数据集...")
     print(f"📂 数据将保存至: {DATASET_ROOT}")
     
@@ -51,22 +56,26 @@ def batch_process():
 
     for split, repo_list in REPOS.items():
         save_dir = TRAIN_DIR if split == "train" else TEST_DIR
+        saved_count = 0
         print(f"\nProcessing {split} set ({len(repo_list)} repos)...")
         
-        for repo in tqdm(repo_list):
+        for repo in tqdm(repo_list, desc=f"{split} repos"):
             try:
                 # print(f"Fetching {repo}...")
                 df = core.build_aligned_dataset(repo)
                 
                 if df is not None and not df.empty:
                     # 保存为 CSV
-                    safe_name = repo.replace("/", "_")
+                    safe_name = safe_repo_name(repo)
                     file_path = os.path.join(save_dir, f"{safe_name}_context.csv")
                     df.to_csv(file_path, index=False)
+                    saved_count += 1
                 else:
                     print(f"⚠️ No data found for {repo}")
             except Exception as e:
                 print(f"❌ Error processing {repo}: {e}")
+
+        print(f"✅ Saved {saved_count} datasets for {split}")
 
     print("\n✨ 批量处理完成！")
     print(f"训练集路径: {TRAIN_DIR}")

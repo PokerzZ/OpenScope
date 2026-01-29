@@ -1,7 +1,18 @@
+"""Generate SFT training data from OpenDigger metrics."""
+
 import os
 import pandas as pd
 import json
-import random
+
+WINDOW_SIZE = 6
+COLUMNS_TO_SHOW = [
+    "month",
+    "openrank",
+    "activity",
+    "issue_response_time",
+    "change_request_response_time",
+    "inactive_contributors",
+]
 
 def generate_insights(window, trend, activity_growth):
     insights = []
@@ -47,11 +58,17 @@ def generate_recommendations(trend, activity_growth, inactive_count):
 def generate_sft_dataset():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     data_dir = os.path.join(base_dir, "puppeteer", "data", "OpenDigger", "train")
-    output_path = os.path.join(base_dir, "puppeteer", "data", "sft_train_data.jsonl")
+    output_dir = os.path.join(base_dir, "puppeteer", "data")
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, "sft_train_data.jsonl")
     
     dataset = []
-    window_size = 6
+    window_size = WINDOW_SIZE
     
+    if not os.path.exists(data_dir):
+        print(f"Data directory not found: {data_dir}")
+        return
+
     print(f"Scanning {data_dir}...")
     files = [f for f in os.listdir(data_dir) if f.endswith("_context.csv")]
     
@@ -75,10 +92,9 @@ def generate_sft_dataset():
                 target = df.iloc[i + window_size]
                 
                 # 构建输入提示（表格的文本表示）
-                cols_to_show = ['month', 'openrank', 'activity', 'issue_response_time', 'change_request_response_time', 'inactive_contributors']
                 # 创建格式良好的 markdown 表格字符串
-                # context_str = window[cols_to_show].to_markdown(index=False)
-                context_str = window[cols_to_show].to_string(index=False)
+                # context_str = window[COLUMNS_TO_SHOW].to_markdown(index=False)
+                context_str = window[COLUMNS_TO_SHOW].to_string(index=False)
                 
                 system_prompt = "You are an Open Source Community Manager. Analyze the provided community metrics and generate a structured JSON report."
                 user_prompt = f"""Repository: {repo_name}

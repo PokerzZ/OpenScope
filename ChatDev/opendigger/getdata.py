@@ -1,3 +1,5 @@
+"""OpenDigger data collection utilities for OpenScope."""
+
 import os
 import subprocess
 import pandas as pd
@@ -5,6 +7,7 @@ import json
 import re
 import stat
 import logging
+from typing import Optional, Sequence
 
 # --- 1. 动态环境配置：支持子文件夹 ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -13,6 +16,13 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SUB_DIR_NAME = "opendigger-cli"
 BINARY_NAME = "od-cli"
 DEFAULT_TIMEOUT_SECONDS = 60
+DEFAULT_METRICS = [
+    "openrank",
+    "activity",
+    "issue_response_time",
+    "change_request_response_time",
+    "inactive_contributors",
+]
 
 # 计算二进制文件的绝对路径
 BIN_PATH = os.path.join(BASE_DIR, SUB_DIR_NAME, BINARY_NAME)
@@ -30,7 +40,8 @@ class OpenPuppeteerDataCore:
         self._health_check()
         
         if not os.path.exists(self.storage_dir):
-            os.makedirs(self.storage_dir)
+            os.makedirs(self.storage_dir, exist_ok=True)
+            logging.info("Created OpenDigger storage directory: %s", self.storage_dir)
 
     def _health_check(self):
         """检查子文件夹内的文件是否存在且可执行"""
@@ -43,14 +54,19 @@ class OpenPuppeteerDataCore:
             logging.info(f"🔧 自动修复子文件夹内 {self.binary_name} 的执行权限...")
             os.chmod(BIN_PATH, st.st_mode | stat.S_IEXEC)
 
-    def fetch_and_clean(self, repo, metric):
+    def fetch_and_clean(self, repo: str, metric: str) -> Optional[pd.DataFrame]:
         safe_repo = repo.replace('/', '_')
         file_path = os.path.join(self.storage_dir, f"{safe_repo}_{metric}.json")
         
         # 因为我们已经把子文件夹加入了 PATH，所以这里直接写名字即可
         cmd = [self.binary_name, "download", repo, metric, "-o", file_path]
         
-        logging.info(f"Downloading OpenDigger metric '{metric}' for {repo}...")
+        logging.info(
+            "Downloading OpenDigger metric '%s' for %s -> %s",
+            metric,
+            repo,
+            file_path,
+        )
         try:
             # check=True 会在命令失败时抛出异常
             subprocess.run(
@@ -76,16 +92,12 @@ class OpenPuppeteerDataCore:
             )
             return None
 
-    def build_aligned_dataset(self, repo, metrics=None):
+    def build_aligned_dataset(
+        self, repo: str, metrics: Optional[Sequence[str]] = None
+    ) -> Optional[pd.DataFrame]:
         if metrics is None:
             # 默认指标集，包含核心活跃度、响应速度和贡献者流失情况
-            metrics = [
-                "openrank", 
-                "activity", 
-                "issue_response_time", 
-                "change_request_response_time", 
-                "inactive_contributors"
-            ]
+            metrics = DEFAULT_METRICS
         
         dfs = []
         for metric in metrics:

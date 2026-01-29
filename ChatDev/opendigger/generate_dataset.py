@@ -1,7 +1,17 @@
+"""Generate OpenDigger MMLU-style QA datasets."""
+
 import os
 import sys
 import pandas as pd
-import numpy as np
+
+COLUMNS_TO_SHOW = [
+    "month",
+    "openrank",
+    "activity",
+    "issue_response_time",
+    "change_request_response_time",
+    "inactive_contributors",
+]
 
 def generate_qa_pairs(df, repo_name, window_size=6):
     qa_pairs = []
@@ -19,9 +29,8 @@ def generate_qa_pairs(df, repo_name, window_size=6):
         target = df.iloc[i + window_size]
         
         # 上下文字符串（选择相关列）
-        cols_to_show = ['month', 'openrank', 'activity', 'issue_response_time', 'change_request_response_time', 'inactive_contributors']
         # 过滤存在的列
-        cols = [c for c in cols_to_show if c in df.columns]
+        cols = [c for c in COLUMNS_TO_SHOW if c in df.columns]
         context_str = window[cols].to_string(index=False)
         
         # 计算 'activity'（活跃度）的趋势
@@ -72,6 +81,10 @@ def main():
     
     all_data = []
     
+    if not os.path.exists(data_dir):
+        print(f"Data directory not found: {data_dir}")
+        return
+
     print(f"Scanning {data_dir}...")
     for filename in os.listdir(data_dir):
         if filename.endswith("_context.csv"):
@@ -92,8 +105,7 @@ def main():
     
     # 保存为 Parquet 格式
     output_dir = os.path.join(base_dir, "puppeteer", "data", "OpenDiggerMMLU")
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    os.makedirs(output_dir, exist_ok=True)
         
     output_path = os.path.join(output_dir, "test.parquet")
     df_final.to_parquet(output_path)
