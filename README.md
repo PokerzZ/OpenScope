@@ -58,7 +58,7 @@
 
 - **Python 3.11** 或更高版本
 - **CUDA GPU**（可选，用于策略训练）
-- **API Keys**：OpenAI API（或其他 LLM 服务）
+- **API Keys**（必需）：OpenAI API（或其他 LLM 服务）
 
 ### 安装步骤
 
@@ -90,11 +90,14 @@ cd ChatDev
 
 # 安装所有依赖
 pip install -r requirements.txt
+
+# 如需从项目根目录安装，可使用：
+# pip install -r ChatDev/requirements.txt
 ```
 
 #### 4. 下载 Puppeteer 模型基座
 
-OpenScope 策略网络模型保存在在/checkpoint/policy_net_20260105_091009.pt中，同时使用 70B 奖励模型作为 Puppeteer 的奖励模型，通过 api 调用 Qwen2.5-plus 模型作为智能体基座。你可以：
+OpenScope 策略网络模型存放在 `/checkpoint/policy_net_20260105_091009.pt` 中，同时使用 70B 奖励模型作为 Puppeteer 的奖励模型，通过 API 调用 Qwen2.5-plus 模型作为智能体基座。你可以：
 
 **方法 1：直接从 Hugging Face 加载**
 ```yaml
@@ -178,20 +181,20 @@ python main.py OpenDigger validation --data_limit 10
 
 结合 MMLU 风格的多选题格式，评估智能体对社区趋势的预测能力。
 
+```bash
 # 从项目根目录开始
-cd ChatDev/bash
-cd puppeteer
+cd ChatDev/puppeteer
 python main.py OpenDiggerMMLU validation --data_limit 5
 ```
 
 ### 支持的其他任务
 
-OpenScope 基于 Puppeteer 框架，也支持其他基准测试任务：
+OpenScope 基于 Puppeteer 框架，也支持以下基准测试任务：
 
-``确保在 ChatDev/puppeteer 目录下
+```bash
+# 确保在 `ChatDev/puppeteer` 目录下
 cd ChatDev/puppeteer
 
-# `bash
 # MMLU-Pro 学术推理任务
 python main.py MMLU-Pro validation --data_limit 10
 
@@ -224,13 +227,11 @@ python main.py CW validation --data_limit 10
    - 配置工具权限（`tools`）
    - 更换模型后端（`backbone`）
 
-### 数据准备
-
-# 从项目根目录进入 opendigger 目录
-cd ChatDevOpenDigger 数据获取
+### 数据准备（OpenDigger）
 
 ```bash
-cd ../opendigger
+# 从项目根目录进入 OpenDigger 数据目录
+cd ChatDev/opendigger
 
 # 批量获取多个仓库的数据
 python batch_get_data.py
@@ -246,15 +247,15 @@ python generate_dataset.py
 - **change_request_response_time**：PR 平均响应时间
 - **inactive_contributors**：不活跃贡献者数量
 
-数据将存储在 `opendigger/data_warehouse/` 目录。
+数据将存储在 `ChatDev/opendigger/data_warehouse/` 目录。
 
-### 🌐 Web 可视化界面
+### 🌐 Web 可视化界面（可选）
 
 OpenScope 提供了两套 Web UI 用于可视化多智能体推理过程：
 
 #### 方式 1：Flask 单页应用（推荐快速演示）
 
-使用 Flask 后端 + SSE（Server-Sent Events）实时流式传输日志。
+使用 Flask 后端 + SSE（Server-Sent Events）实时流式传输日志（Python 3.11+）。
 
 **启动服务**：
 
@@ -298,7 +299,7 @@ npm install  # 首次运行需要安装依赖
 npm start
 ```
 
-前端将在 `http://localhost:3000` 启动，自动连接后端 `http://localhost:8000`。
+前端将在 `http://localhost:3000` 启动，并自动连接后端 `http://localhost:8000`。
 
 **功能特性**：
 - ⚡ WebSocket 双向实时通信

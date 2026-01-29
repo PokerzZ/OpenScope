@@ -1,3 +1,5 @@
+"""OpenDigger data collection utilities for OpenScope."""
+
 import os
 import subprocess
 import pandas as pd
@@ -5,6 +7,7 @@ import json
 import re
 import stat
 import logging
+from typing import Optional, Sequence
 
 # --- 1. 动态环境配置：支持子文件夹 ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -12,6 +15,17 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # 指定子文件夹路径和二进制文件名
 SUB_DIR_NAME = "opendigger-cli"
 BINARY_NAME = "od-cli"
+DEFAULT_TIMEOUT_SECONDS = 60
+DEFAULT_METRICS = [
+    "openrank",
+    "activity",
+    "issue_response_time",
+    "change_request_response_time",
+    "inactive_contributors",
+]
+SAFE_REPO_SEPARATOR = "_"
+MONTH_KEY_PATTERN = re.compile(r"^\d{4}-\d{2}$")
+JSON_SUFFIX = ".json"
 
 # 计算二进制文件的绝对路径
 BIN_PATH = os.path.join(BASE_DIR, SUB_DIR_NAME, BINARY_NAME)
@@ -22,14 +36,16 @@ BIN_DIR_PATH = os.path.join(BASE_DIR, SUB_DIR_NAME)
 os.environ["PATH"] = BIN_DIR_PATH + os.pathsep + os.environ["PATH"]
 
 class OpenPuppeteerDataCore:
-    def __init__(self, binary_name=BINARY_NAME):
+    """Core utilities for downloading and assembling OpenDigger metrics."""
+    def __init__(self, binary_name: str = BINARY_NAME):
         self.binary_name = binary_name
         self.storage_dir = os.path.join(BASE_DIR, "data_warehouse")
         
         self._health_check()
         
         if not os.path.exists(self.storage_dir):
-            os.makedirs(self.storage_dir)
+            os.makedirs(self.storage_dir, exist_ok=True)
+            logging.info("Created OpenDigger storage directory: %s", self.storage_dir)
 
     def _health_check(self):
         """检查子文件夹内的文件是否存在且可执行"""
@@ -42,38 +58,52 @@ class OpenPuppeteerDataCore:
             logging.info(f"🔧 自动修复子文件夹内 {self.binary_name} 的执行权限...")
             os.chmod(BIN_PATH, st.st_mode | stat.S_IEXEC)
 
-    def fetch_and_clean(self, repo, metric):
-        safe_repo = repo.replace('/', '_')
-        file_path = os.path.join(self.storage_dir, f"{safe_repo}_{metric}.json")
+    def fetch_and_clean(self, repo: str, metric: str) -> Optional[pd.DataFrame]:
+        """Download and normalize a single OpenDigger metric."""
+        safe_repo = repo.replace("/", SAFE_REPO_SEPARATOR)
+        file_path = self._build_metric_path(safe_repo, metric)
         
         # 因为我们已经把子文件夹加入了 PATH，所以这里直接写名字即可
         cmd = [self.binary_name, "download", repo, metric, "-o", file_path]
         
-        logging.info(f"Downloading OpenDigger metric '{metric}' for {repo}...")
+        logging.info(
+            "Downloading OpenDigger metric '%s' for %s -> %s",
+            metric,
+            repo,
+            file_path,
+        )
         try:
             # check=True 会在命令失败时抛出异常
-            subprocess.run(cmd, capture_output=True, text=True, check=True)
+            subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=DEFAULT_TIMEOUT_SECONDS,
+            )
             with open(file_path, 'r') as f:
                 raw = json.load(f)
             
-            monthly = {k: v for k, v in raw.items() if re.match(r'^\d{4}-\d{2}$', k)}
+            monthly = {k: v for k, v in raw.items() if MONTH_KEY_PATTERN.match(k)}
             df = pd.DataFrame(list(monthly.items()), columns=['month', metric])
             df['month'] = pd.to_datetime(df['month'])
             return df
         except subprocess.CalledProcessError as e:
             logging.error(f"❌ {repo} {metric} 抓取失败！命令行输出: {e.stderr}")
             return None
+        except subprocess.TimeoutExpired:
+            logging.error(
+                f"❌ {repo} {metric} 抓取超时（{DEFAULT_TIMEOUT_SECONDS}s）。"
+            )
+            return None
 
-    def build_aligned_dataset(self, repo, metrics=None):
+    def build_aligned_dataset(
+        self, repo: str, metrics: Optional[Sequence[str]] = None
+    ) -> Optional[pd.DataFrame]:
+        """Merge OpenDigger metrics into a single aligned dataset."""
         if metrics is None:
             # 默认指标集，包含核心活跃度、响应速度和贡献者流失情况
-            metrics = [
-                "openrank", 
-                "activity", 
-                "issue_response_time", 
-                "change_request_response_time", 
-                "inactive_contributors"
-            ]
+            metrics = DEFAULT_METRICS
         
         dfs = []
         for metric in metrics:
@@ -117,6 +147,10 @@ class OpenPuppeteerDataCore:
              )
 
         return final_df
+
+    def _build_metric_path(self, safe_repo: str, metric: str) -> str:
+        """Build the output path for a single metric payload."""
+        return os.path.join(self.storage_dir, f"{safe_repo}_{metric}{JSON_SUFFIX}")
 
 if __name__ == "__main__":
     core = OpenPuppeteerDataCore()
